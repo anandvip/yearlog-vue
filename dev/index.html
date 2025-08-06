@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YearLog Architectural Blueprint - Vue.js Conversion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .blueprint-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            min-height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0;
+            box-shadow: 0 0 50px rgba(0,0,0,0.1);
+        }
+
+        /* LEFT NAVIGATION COLUMN */
+        .nav-column {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 3px solid #3498db;
+            position: relative;
+        }
+
+        .nav-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .nav-header h1 {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+            color: #ecf0f1;
+        }
+
+        .nav-header .subtitle {
+            font-size: 0.9em;
+            color: #bdc3c7;
+            font-style: italic;
+        }
+
+        .nav-tree {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            color: #ecf0f1;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.9em;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-link.has-children::before {
+            content: "▶";
+            margin-right: 8px;
+            transition: transform 0.3s ease;
+            font-size: 0.8em;
+        }
+
+        .nav-link.expanded::before {
+            transform: rotate(90deg);
+        }
+
+        .nav-children {
+            margin-left: 20px;
+            margin-top: 5px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .nav-children.show {
+            max-height: 500px;
+        }
+
+        .nav-children .nav-link {
+            font-size: 0.8em;
+            padding: 6px 10px;
+            color: #bdc3c7;
+        }
+
+        .nav-children .nav-children .nav-link {
+            font-size: 0.75em;
+            margin-left: 15px;
+            color: #95a5a6;
+        }
+
+        /* MAIN CONTENT COLUMN */
+        .content-column {
+            padding: 30px;
+            overflow-y: auto;
+            background: #ffffff;
+            position: relative;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .content-title {
+            font-size: 2em;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .content-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .tts-controls {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .tts-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .tts-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .tts-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .content-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #ffffff;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .content-section:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .content-section.speaking {
+            background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+            border-left-color: #f39c12;
+        }
+
+        .section-title {
+            font-size: 1.6em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-content {
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .section-content h3 {
+            color: #2c3e50;
+            margin: 20px 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .section-content h4 {
+            color: #34495e;
+            margin: 15px 0 8px 0;
+            font-size: 1.1em;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: "Vue.js";
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #27ae60;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+        }
+
+        .highlight-box {
+            background: linear-gradient(45deg, #e8f5e8, #d4edda);
+            border: 2px solid #27ae60;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .warning-box {
+            background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+            border: 2px solid #f39c12;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .architecture-diagram {
+            background: #f8f9fa;
+            border: 2px dashed #3498db;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: monospace;
+            white-space: pre-line;
+        }
+
+        /* RIGHT ARGUMENTS COLUMN */
+        .arguments-column {
+            background: linear-gradient(180deg, #ecf0f1 0%, #bdc3c7 100%);
+            border-left: 3px solid #e74c3c;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+            resize: horizontal;
+            min-width: 250px;
+            max-width: 500px;
+        }
+
+        .arguments-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e74c3c;
+        }
+
+        .arguments-header h3 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .arguments-subtitle {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .argument-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .arg-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease;
+        }
+
+        .arg-btn:hover {
+            background: #c0392b;
+        }
+
+        .argument-editor {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #95a5a6;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            background: white;
+            color: #2c3e50;
+        }
+
+        .argument-editor:focus {
+            border-color: #e74c3c;
+            outline: none;
+        }
+
+        .argument-preview {
+            background: white;
+            border: 2px solid #95a5a6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+            min-height: 100px;
+        }
+
+        .argument-item {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .argument-meta {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+
+        .export-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #95a5a6;
+        }
+
+        .export-btn {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            width: 100%;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        /* Embedded Arguments in Content */
+        .embedded-argument {
+            background: linear-gradient(45deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.1));
+            border-left: 4px solid #e74c3c;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            position: relative;
+        }
+
+        .embedded-argument::before {
+            content: "🔥 Dev Argument";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .blueprint-container {
+                grid-template-columns: 250px 1fr 300px;
+            }
+        }
+
+        @media (max-width: 968px) {
+            .blueprint-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+            }
+            
+            .nav-column {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+            
+            .arguments-column {
+                max-height: 300px;
+                resize: none;
+            }
+        }
+
+        /* Glassmorphism Effects */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        /* Micro-animations */
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .animate-slide {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Accessibility Improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .focus-visible {
+            outline: 2px solid #3498db;
+            outline-offset: 2px;
+        }
+
+        /* Print Styles */
+        @media print {
+            .blueprint-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-column, .arguments-column {
+                display: none;
+            }
+            
+            .content-column {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="blueprint-container">
+        <!-- LEFT NAVIGATION COLUMN -->
+        <nav class="nav-column" role="navigation" aria-label="Architecture sections">
+            <div class="nav-header">
+                <h1>YearLog Blueprint</h1>
+                <div class="subtitle">Vue.js Conversion</div>
+            </div>
+            
+            <ul class="nav-tree" role="tree">
+                <li class="nav-item" role="treeitem">
+                    <a class="nav-link has-children active" data-section="system-overview" tabindex="0">
+                        📋 System Overview
+                    </a>
+                    <ul class="nav-children show" role="group">
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="business-context" tabindex="0">Business Context</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="architecture-vision" tabindex="0">Architecture Vision</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="technology-stack" tabindex="0">Technology Stack</a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item" role="treeitem">
+                    <a class="nav-link has-children" data-section="vue-conversion" tabindex="0">
+                        🔄 Vue.js Conversion Strategy
+                    </a>
+                    <ul class="nav-children" role="group">
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="component-architecture" tabindex="0">Component Architecture</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="state-management" tabindex="0">State Management (Pinia)</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="data-persistence" tabindex="0">Data Persistence</a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item" role="treeitem">
+                    <a class="nav-link has-children" data-section="technical-architecture" tabindex="0">
+                        ⚙️ Technical Architecture
+                    </a>
+                    <ul class="nav-children" role="group">
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="file-structure" tabindex="0">File Structure</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="build-deployment" tabindex="0">Build & Deployment</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="pwa-implementation" tabindex="0">PWA Implementation</a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item" role="treeitem">
+                    <a class="nav-link has-children" data-section="ui-evolution" tabindex="0">
+                        🎨 UI/UX Evolution
+                    </a>
+                    <ul class="nav-children" role="group">
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="design-system" tabindex="0">Design System</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="glassmorphism" tabindex="0">Glassmorphism Effects</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="micro-animations" tabindex="0">Micro-animations</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="accessibility" tabindex="0">Accessibility</a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li class="nav-item" role="treeitem">
+                    <a class="nav-link has-children" data-section="implementation" tabindex="0">
+                        🚀 Implementation Roadmap
+                    </a>
+                    <ul class="nav-children" role="group">
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="phase-1" tabindex="0">Phase 1: Foundation</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="phase-2" tabindex="0">Phase 2: Components</a>
+                        </li>
+                        <li class="nav-item" role="treeitem">
+                            <a class="nav-link" data-section="phase-3" tabindex="0">Phase 3: Enhancement</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- MAIN CONTENT COLUMN -->
+        <main class="content-column" role="main">
+            <div class="content-header">
+                <div>
+                    <h1 class="content-title" id="content-title">System Overview</h1>
+                    <p class="content-subtitle" id="content-subtitle">Comprehensive architectural blueprint for YearLog Vue.js conversion</p>
+                </div>
+                <div class="tts-controls">
+                    <button class="tts-btn" id="tts-play" title="Read aloud">🔊 Play</button>
+                    <button class="tts-btn" id="tts-pause" disabled title="Pause reading">⏸️ Pause</button>
+                    <button class="tts-btn" id="tts-stop" disabled title="Stop reading">⏹️ Stop</button>
+                </div>
+            </div>
+
+            <div id="content-area">
+                <!-- SYSTEM OVERVIEW SECTION -->
+                <section class="content-section animate-fade" id="system-overview">
+                    <h2 class="section-title">📋 System Overview</h2>
+                    <div class="section-content">
+                        <p>YearLog is a minimalist personal memory companion designed as a Progressive Web Application (PWA) that emphasizes privacy, simplicity, and offline-first functionality. The application serves as a digital diary and memory strengthening tool, completely self-contained and deployable to GitHub Pages.</p>
+
+                        <div class="embedded-argument">
+                            <strong>Developer Insight:</strong> The current vanilla JavaScript implementation is surprisingly robust, but Vue.js will provide better maintainability, reactivity, and component reusability while preserving the minimalist philosophy.
+                        </div>
+
+                        <h3>Business Context</h3>
+                        <p>YearLog addresses the need for a private, empathetic digital journaling tool that works entirely offline. Unlike cloud-based solutions, it ensures complete user privacy by storing all data locally in browser localStorage, making it ideal for users who prioritize data sovereignty.</p>
+
+                        <h3>Core Value Propositions</h3>
+                        <ul>
+                            <li><strong>Complete Privacy:</strong> Zero server dependency, all data stays local</li>
+                            <li><strong>Offline-First:</strong> Full functionality without internet connection</li>
+                            <li><strong>Minimalist Design:</strong> Clean, distraction-free interface</li>
+                            <li><strong>Memory Enhancement:</strong> Features designed to strengthen memory connections</li>
+                            <li><strong>Cross-Platform:</strong> Works on mobile, tablet, and desktop as PWA</li>
+                        </ul>
+
+                        <div class="highlight-box">
+                            <strong>🎯 Architecture Goal:</strong> Convert to Vue.js while maintaining the existing minimalist philosophy, adding modern development benefits without compromising user experience or increasing complexity.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VUE CONVERSION STRATEGY SECTION -->
+                <section class="content-section" id="vue-conversion">
+                    <h2 class="section-title">🔄 Vue.js Conversion Strategy</h2>
+                    <div class="section-content">
+                        <p>The conversion strategy focuses on preserving the current functionality while introducing Vue.js benefits: reactivity, component structure, and better state management through Pinia.</p>
+
+                        <h3>Component Architecture</h3>
+                        <div class="architecture-diagram">
+App.vue (Root Component)
+├── AppHeader.vue
+│   ├── DateInfo.vue
+│   ├── YearNameEditor.vue
+│   ├── InstallButton.vue
+│   └── SettingsPanel.vue
+├── MainContent.vue
+│   ├── EntryList.vue
+│   └── EntryItem.vue
+├── SearchPanel.vue
+│   ├── YearOverview.vue
+│   ├── MonthStats.vue
+│   └── SearchResults.vue
+├── AppFooter.vue
+└── Modals/
+    ├── AboutModal.vue
+    ├── ConfirmationModal.vue
+    └── ToastNotification.vue
+                        </div>
+
+                        <h3>Recommended Vue.js Setup</h3>
+                        <div class="code-block">
+// Single HTML file approach for GitHub Pages compatibility
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;script src="https://unpkg.com/vue@3/dist/vue.global.js"&gt;&lt;/script&gt;
+  &lt;script src="https://unpkg.com/pinia@2/dist/pinia.iife.js"&gt;&lt;/script&gt;
+  &lt;style&gt;/* Styles here */&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div id="app"&gt;&lt;/div&gt;
+  &lt;script&gt;
+    // Vue app definition with Composition API
+    const { createApp, ref, computed, onMounted } = Vue;
+    const { createPinia, defineStore } = Pinia;
+    
+    // Store definitions and components here
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+                        </div>
+
+                        <div class="embedded-argument">
+                            <strong>Alternative Approach:</strong> Consider using Vite for development with a build step that outputs a single optimized HTML file for GitHub Pages deployment. This would allow proper .vue components during development.
+                        </div>
+
+                        <h3>State Management with Pinia</h3>
+                        <div class="code-block">
+// Main store for entries and app state
+const useAppStore = defineStore('app', () =&gt; {
+  const entries = ref([]);
+  const yearName = ref('');
+  const searchQuery = ref('');
+  const isSearchOpen = ref(false);
+  
+  // Computed properties
+  const currentYearEntries = computed(() =&gt; {
+    const currentYear = new Date().getFullYear();
+    return entries.value.filter(entry =&gt; 
+      new Date(entry.timestamp).getFullYear() === currentYear
+    );
+  });
+  
+  // Actions
+  const addEntry = (entry) =&gt; {
+    entries.value.unshift(entry);
+    saveToStorage();
+  };
+  
+  const updateEntry = (index, field, value) =&gt; {
+    if (entries.value[index]) {
+      entries.value[index][field] = value;
+      saveToStorage();
+    }
+  };
+  
+  const saveToStorage = () =&gt; {
+    localStorage.setItem('yearlog_entries', JSON.stringify(entries.value));
+    localStorage.setItem('yearlog_year_name', yearName.value);
+  };
+  
+  return {
+    entries, yearName, searchQuery, isSearchOpen,
+    currentYearEntries, addEntry, updateEntry, saveToStorage
+  };
+});
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TECHNICAL ARCHITECTURE SECTION -->
+                <section class="content-section" id="technical-architecture">
+                    <h2 class="section-title">⚙️ Technical Architecture</h2>
+                    <div class="section-content">
+                        <h3>File Structure Options</h3>
+                        
+                        <h4>Option 1: Single File (GitHub Pages Optimized)</h4>
+                        <div class="code-block">
+yearlog-vue/
+├── index.html          # Complete Vue app in single file
+├── manifest.json       # PWA manifest
+├── sw.js              # Service worker (optional)
+├── assets/
+│   ├── ylg.png        # App icon
+│   └── favicon.ico
+└── README.md
+                        </div>
+
+                        <h4>Option 2: Three File Structure</h4>
+                        <div class="code-block">
+yearlog-vue/
+├── index.html         # HTML structure
+├── app.css           # All styles
+├── app.js            # Vue app logic
+├── manifest.json
+└── assets/
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>⚠️ GitHub Pages Constraint:</strong> GitHub Pages serves static files only. Vue CLI builds require a build process. The single-file approach or three-file structure ensures direct compatibility without build steps.
+                        </div>
+
+                        <h3>Data Persistence Strategy</h3>
+                        <p>Maintain the current localStorage approach but enhance it with Vue reactivity:</p>
+
+                        <div class="code-block">
+// Enhanced localStorage with Vue reactivity
+const useStorageStore = defineStore('storage', () =&gt; {
+  const STORAGE_KEY = 'yearlog_entries_v2';
+  const YEAR_NAME_KEY = 'yearlog_year_name';
+  
+  const loadFromStorage = () =&gt; {
+    try {
+      const entriesData = localStorage.getItem(STORAGE_KEY);
+      const yearNameData = localStorage.getItem(YEAR_NAME_KEY);
+      
+      return {
+        entries: entriesData ? JSON.parse(entriesData) : [],
+        yearName: yearNameData || new Date().getFullYear().toString()
+      };
+    } catch (error) {
+      console.error('Storage load error:', error);
+      return { entries: [], yearName: new Date().getFullYear().toString() };
+    }
+  };
+  
+  const saveToStorage = (entries, yearName) =&gt; {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      localStorage.setItem(YEAR_NAME_KEY, yearName);
+      return true;
+    } catch (error) {
+      console.error('Storage save error:', error);
+      return false;
+    }
+  };
+  
+  return { loadFromStorage, saveToStorage };
+});
+                        </div>
+
+                        <h3>PWA Implementation</h3>
+                        <p>Enhance the existing PWA features with Vue integration:</p>
+
+                        <div class="code-block">
+// PWA integration in Vue app
+const usePWAStore = defineStore('pwa', () =&gt; {
+  const deferredPrompt = ref(null);
+  const isInstallable = ref(false);
+  const isInstalled = ref(false);
+  
+  const setupPWA = () =&gt; {
+    // Handle install prompt
+    window.addEventListener('beforeinstallprompt', (e) =&gt; {
+      e.preventDefault();
+      deferredPrompt.value = e;
+      isInstallable.value = true;
+    });
+    
+    // Handle app installed
+    window.addEventListener('appinstalled', () =&gt; {
+      deferredPrompt.value = null;
+      isInstallable.value = false;
+      isInstalled.value = true;
+    });
+  };
+  
+  const installApp = async () =&gt; {
+    if (deferredPrompt.value) {
+      deferredPrompt.value.prompt();
+      const { outcome } = await deferredPrompt.value.userChoice;
+      deferredPrompt.value = null;
+      isInstallable.value = false;
+      return outcome === 'accepted';
+    }
+    return false;
+  };
+  
+  return { isInstallable, isInstalled, setupPWA, installApp };
+});
+                        </div>
+                    </div>
+                </section>
+
+                <!-- UI/UX EVOLUTION SECTION -->
+                <section class="content-section" id="ui-evolution">
+                    <h2 class="section-title">🎨 UI/UX Evolution</h2>
+                    <div class="section-content">
+                        <h3>Design System Enhancement</h3>
+                        <p>Evolve the current minimalist design with modern touches while preserving the core philosophy:</p>
+
+                        <h4>Glassmorphism Integration</h4>
+                        <div class="code-block">
+// Glassmorphism CSS utilities
+.glass-primary {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.glass-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+// Apply to Vue components
+&lt;template&gt;
+  &lt;div class="entry-card glass-primary"&gt;
+    &lt;!-- Entry content --&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+                        </div>
+
+                        <h4>Micro-animations Implementation</h4>
+                        <div class="code-block">
+// Vue transition components
+&lt;template&gt;
+  &lt;transition-group 
+    name="entry-list" 
+    tag="div" 
+    class="entries-container"&gt;
+    &lt;EntryItem 
+      v-for="(entry, index) in entries" 
+      :key="entry.id"
+      :entry="entry"
+      :index="index"
+      @update="updateEntry"
+      @delete="deleteEntry" /&gt;
+  &lt;/transition-group&gt;
+&lt;/template&gt;
+
+&lt;style&gt;
+.entry-list-enter-active,
+.entry-list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.entry-list-enter-from {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.entry-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.entry-list-move {
+  transition: transform 0.5s ease;
+}
+&lt;/style&gt;
+                        </div>
+
+                        <div class="embedded-argument">
+                            <strong>Performance Consideration:</strong> Ensure animations are optimized for mobile devices. Consider using `will-change` CSS property and `transform3d` for GPU acceleration.
+                        </div>
+
+                        <h4>Accessibility Improvements</h4>
+                        <div class="code-block">
+// Vue component with accessibility features
+&lt;template&gt;
+  &lt;button 
+    class="entry-action-btn"
+    :aria-label="`Delete entry: ${entry.title}`"
+    @click="$emit('delete', entry.id)"
+    @keydown.enter="$emit('delete', entry.id)"
+    :disabled="isDeleting"&gt;
+    &lt;span aria-hidden="true"&gt;❌&lt;/span&gt;
+    &lt;span class="sr-only"&gt;Delete entry&lt;/span&gt;
+  &lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+// Focus management
+import { nextTick, ref } from 'vue';
+
+const focusOnTitle = async () =&gt; {
+  await nextTick();
+  titleInput.value?.focus();
+};
+&lt;/script&gt;
+                        </div>
+
+                        <h3>Responsive Design Enhancement</h3>
+                        <p>Improve mobile experience with Vue-specific responsive patterns:</p>
+
+                        <div class="code-block">
+// Composable for responsive design
+import { ref, onMounted, onUnmounted } from 'vue';
+
+export function useResponsive() {
+  const windowWidth = ref(window.innerWidth);
+  const isMobile = computed(() =&gt; windowWidth.value &lt; 768);
+  const isTablet = computed(() =&gt; windowWidth.value &gt;= 768 && windowWidth.value &lt; 1024);
+  const isDesktop = computed(() =&gt; windowWidth.value &gt;= 1024);
+  
+  const updateWidth = () =&gt; {
+    windowWidth.value = window.innerWidth;
+  };
+  
+  onMounted(() =&gt; {
+    window.addEventListener('resize', updateWidth);
+  });
+  
+  onUnmounted(() =&gt; {
+    window.removeEventListener('resize', updateWidth);
+  });
+  
+  return { windowWidth, isMobile, isTablet, isDesktop };
+}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- IMPLEMENTATION ROADMAP SECTION -->
+                <section class="content-section" id="implementation">
+                    <h2 class="section-title">🚀 Implementation Roadmap</h2>
+                    <div class="section-content">
+                        <h3>Phase 1: Foundation (Week 1-2)</h3>
+                        <div class="highlight-box">
+                            <strong>🎯 Goal:</strong> Establish Vue.js foundation with core functionality
+                            <ul>
+                                <li>Set up Vue 3 with Composition API</li>
+                                <li>Implement Pinia store for state management</li>
+                                <li>Convert core entry management functionality</li>
+                                <li>Maintain existing localStorage persistence</li>
+                                <li>Ensure PWA manifest and basic service worker work</li>
+                            </ul>
+                        </div>
+
+                        <h3>Phase 2: Component Architecture (Week 3-4)</h3>
+                        <div class="highlight-box">
+                            <strong>🎯 Goal:</strong> Break down into maintainable Vue components
+                            <ul>
+                                <li>Create component hierarchy (Header, Main, Footer, etc.)</li>
+                                <li>Implement search functionality with Vue reactivity</li>
+                                <li>Convert modals and notifications to Vue components</li>
+                                <li>Add proper event handling and component communication</li>
+                                <li>Implement Vue transitions for existing interactions</li>
+                            </ul>
+                        </div>
+
+                        <h3>Phase 3: Enhancement & Polish (Week 5-6)</h3>
+                        <div class="highlight-box">
+                            <strong>🎯 Goal:</strong> Add modern features while preserving minimalism
+                            <ul>
+                                <li>Implement glassmorphism design effects</li>
+                                <li>Add micro-animations and improved transitions</li>
+                                <li>Enhance accessibility with proper ARIA labels and focus management</li>
+                                <li>Optimize for performance and mobile experience</li>
+                                <li>Add comprehensive testing and documentation</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>⚠️ Migration Strategy:</strong> Consider running both versions in parallel during development. Create a migration tool to transfer localStorage data between versions if data structure changes are needed.
+                        </div>
+
+                        <h3>Success Criteria</h3>
+                        <ul>
+                            <li><strong>Functional Parity:</strong> All existing features work identically</li>
+                            <li><strong>Performance:</strong> No degradation in load time or responsiveness</li>
+                            <li><strong>Mobile Experience:</strong> Improved touch interactions and gestures</li>
+                            <li><strong>Maintainability:</strong> Clean component structure for future updates</li>
+                            <li><strong>Accessibility:</strong> Meets WCAG 2.1 AA standards</li>
+                            <li><strong>Bundle Size:</strong> Minimize increase in total file size</li>
+                        </ul>
+
+                        <div class="embedded-argument">
+                            <strong>Testing Strategy:</strong> Since this is a localStorage-based app, focus on manual testing across different browsers and devices. Consider implementing automated accessibility testing with tools like axe-core.
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- RIGHT ARGUMENTS COLUMN -->
+        <aside class="arguments-column" role="complementary" aria-label="Developer arguments and annotations">
+            <div class="arguments-header">
+                <h3>Developer Arguments</h3>
+                <p class="arguments-subtitle">Real-time annotations and design decisions</p>
+            </div>
+
+            <div class="argument-controls">
+                <button class="arg-btn" onclick="addArgument()">+ Add Argument</button>
+                <button class="arg-btn" onclick="togglePreview()">Preview</button>
+                <button class="arg-btn" onclick="clearArguments()">Clear All</button>
+            </div>
+
+            <textarea 
+                class="argument-editor" 
+                id="argument-editor"
+                placeholder="Add your architectural arguments, concerns, or improvements here...
+
+Supports **markdown**:
+- **Bold text**
+- *Italic text*  
+- [Links](url)
+- `code snippets`
+- > Blockquotes
+
+Use this space to:
+• Question design decisions
+• Suggest alternatives
+• Note potential issues
+• Record insights
+• Plan improvements"
+                oninput="updatePreview()"></textarea>
+
+            <div class="argument-preview" id="argument-preview" style="display: none;">
+                <em>Markdown preview will appear here...</em>
+            </div>
+
+            <div id="arguments-list">
+                <div class="argument-item">
+                    <div class="argument-meta">2025-07-30 15:30 - System Overview</div>
+                    <strong>Single File vs Multi-Component:</strong> While single-file approach works for GitHub Pages, consider the developer experience trade-off. Vite build process could output optimized single file while allowing proper .vue development.
+                </div>
+                
+                <div class="argument-item">
+                    <div class="argument-meta">2025-07-30 15:35 - Vue Conversion</div>
+                    <strong>Composition API Justification:</strong> Recommend Composition API over Options API for better TypeScript support (future-proofing) and more flexible component logic organization, especially for the complex search functionality.
+                </div>
+                
+                <div class="argument-item">
+                    <div class="argument-meta">2025-07-30 15:40 - Performance</div>
+                    <strong>Bundle Size Concern:</strong> Vue 3 CDN (~34KB gzipped) + Pinia (~2KB) vs current vanilla JS. Monitor impact on load time, especially on mobile networks. Consider lazy loading for non-critical components.
+                </div>
+            </div>
+
+            <div class="export-section">
+                <button class="export-btn" onclick="exportArguments('json')">📄 Export as JSON</button>
+                <button class="export-btn" onclick="exportArguments('markdown')">📝 Export as Markdown</button>
+                <button class="export-btn" onclick="exportArguments('git-patch')">🔀 Generate Git Patch</button>
+                <button class="export-btn" onclick="embedArguments()">🔥 Embed in Document</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Blueprint functionality
+        const blueprint = {
+            currentSection: 'system-overview',
+            arguments: [],
+            isPlaying: false,
+            currentUtterance: null,
+            synthesis: window.speechSynthesis,
+
+            init() {
+                this.setupNavigation();
+                this.setupTTS();
+                this.loadArguments();
+                this.showSection('system-overview');
+            },
+
+            setupNavigation() {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const sectionId = link.dataset.section;
+                        
+                        if (link.classList.contains('has-children')) {
+                            this.toggleNavSection(link);
+                        }
+                        
+                        if (sectionId) {
+                            this.showSection(sectionId);
+                            this.setActiveNav(link);
+                        }
+                    });
+
+                    // Keyboard navigation
+                    link.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            link.click();
+                        }
+                    });
+                });
+            },
+
+            toggleNavSection(link) {
+                const children = link.nextElementSibling;
+                const isExpanded = link.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    link.classList.remove('expanded');
+                    children.classList.remove('show');
+                } else {
+                    link.classList.add('expanded');
+                    children.classList.add('show');
+                }
+            },
+
+            showSection(sectionId) {
+                // Hide all sections
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+
+                // Show target section
+                const targetSection = document.getElementById(sectionId);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                    targetSection.classList.add('animate-fade');
+                    
+                    // Update header
+                    const title = targetSection.querySelector('.section-title').textContent;
+                    document.getElementById('content-title').textContent = title;
+                    
+                    this.currentSection = sectionId;
+                    
+                    // Scroll to top
+                    document.querySelector('.content-column').scrollTop = 0;
+                }
+            },
+
+            setActiveNav(activeLink) {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                activeLink.classList.add('active');
+            },
+
+            setupTTS() {
+                const playBtn = document.getElementById('tts-play');
+                const pauseBtn = document.getElementById('tts-pause');
+                const stopBtn = document.getElementById('tts-stop');
+
+                playBtn.addEventListener('click', () => this.startTTS());
+                pauseBtn.addEventListener('click', () => this.pauseTTS());
+                stopBtn.addEventListener('click', () => this.stopTTS());
+            },
+
+            startTTS() {
+                const currentSectionElement = document.getElementById(this.currentSection);
+                const content = currentSectionElement.querySelector('.section-content');
+                const text = content.textContent || content.innerText;
+
+                if (this.synthesis.speaking) {
+                    this.synthesis.cancel();
+                }
+
+                this.currentUtterance = new SpeechSynthesisUtterance(text);
+                this.currentUtterance.rate = 0.9;
+                this.currentUtterance.pitch = 1;
+                
+                this.currentUtterance.onstart = () => {
+                    this.isPlaying = true;
+                    currentSectionElement.classList.add('speaking');
+                    document.getElementById('tts-play').disabled = true;
+                    document.getElementById('tts-pause').disabled = false;
+                    document.getElementById('tts-stop').disabled = false;
+                };
+
+                this.currentUtterance.onend = () => {
+                    this.isPlaying = false;
+                    currentSectionElement.classList.remove('speaking');
+                    document.getElementById('tts-play').disabled = false;
+                    document.getElementById('tts-pause').disabled = true;
+                    document.getElementById('tts-stop').disabled = true;
+                };
+
+                this.synthesis.speak(this.currentUtterance);
+            },
+
+            pauseTTS() {
+                if (this.synthesis.speaking) {
+                    this.synthesis.pause();
+                    this.isPlaying = false;
+                    document.getElementById('tts-play').disabled = false;
+                    document.getElementById('tts-pause').disabled = true;
+                }
+            },
+
+            stopTTS() {
+                this.synthesis.cancel();
+                this.isPlaying = false;
+                document.querySelector('.content-section.speaking')?.classList.remove('speaking');
+                document.getElementById('tts-play').disabled = false;
+                document.getElementById('tts-pause').disabled = true;
+                document.getElementById('tts-stop').disabled = true;
+            },
+
+            loadArguments() {
+                try {
+                    const saved = localStorage.getItem('blueprint-arguments');
+                    if (saved) {
+                        this.arguments = JSON.parse(saved);
+                    }
+                } catch (error) {
+                    console.error('Error loading arguments:', error);
+                }
+            },
+
+            saveArguments() {
+                try {
+                    localStorage.setItem('blueprint-arguments', JSON.stringify(this.arguments));
+                } catch (error) {
+                    console.error('Error saving arguments:', error);
+                }
+            }
+        };
+
+        // Global functions for argument handling
+        function addArgument() {
+            const editor = document.getElementById('argument-editor');
+            const content = editor.value.trim();
+            
+            if (content) {
+                const argument = {
+                    id: Date.now(),
+                    content: content,
+                    section: blueprint.currentSection,
+                    timestamp: new Date().toISOString(),
+                    embedded: false
+                };
+                
+                blueprint.arguments.push(argument);
+                blueprint.saveArguments();
+                renderArgument(argument);
+                editor.value = '';
+                updatePreview();
+            }
+        }
+
+        function renderArgument(argument) {
+            const list = document.getElementById('arguments-list');
+            const argDiv = document.createElement('div');
+            argDiv.className = 'argument-item';
+            argDiv.innerHTML = `
+                <div class="argument-meta">${new Date(argument.timestamp).toLocaleString()} - ${argument.section}</div>
+                ${parseMarkdown(argument.content)}
+            `;
+            list.appendChild(argDiv);
+        }
+
+        function togglePreview() {
+            const preview = document.getElementById('argument-preview');
+            const isVisible = preview.style.display !== 'none';
+            preview.style.display = isVisible ? 'none' : 'block';
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const editor = document.getElementById('argument-editor');
+            const preview = document.getElementById('argument-preview');
+            const content = editor.value;
+            
+            if (content.trim()) {
+                preview.innerHTML = parseMarkdown(content);
+            } else {
+                preview.innerHTML = '<em>Markdown preview will appear here...</em>';
+            }
+        }
+
+        function parseMarkdown(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function clearArguments() {
+            if (confirm('Clear all arguments? This cannot be undone.')) {
+                blueprint.arguments = [];
+                blueprint.saveArguments();
+                document.getElementById('arguments-list').innerHTML = '';
+                document.getElementById('argument-editor').value = '';
+                updatePreview();
+            }
+        }
+
+        function exportArguments(format) {
+            const data = blueprint.arguments;
+            let content, filename, mimeType;
+
+            switch (format) {
+                case 'json':
+                    content = JSON.stringify(data, null, 2);
+                    filename = 'yearlog-arguments.json';
+                    mimeType = 'application/json';
+                    break;
+                case 'markdown':
+                    content = generateMarkdownExport(data);
+                    filename = 'yearlog-arguments.md';
+                    mimeType = 'text/markdown';
+                    break;
+                case 'git-patch':
+                    content = generateGitPatch(data);
+                    filename = 'yearlog-arguments.patch';
+                    mimeType = 'text/plain';
+                    break;
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function generateMarkdownExport(data) {
+            let content = '# YearLog Architecture Arguments\n\n';
+            
+            data.forEach(arg => {
+                content += `## ${arg.section} - ${new Date(arg.timestamp).toLocaleDateString()}\n\n`;
+                content += `${arg.content}\n\n---\n\n`;
+            });
+            
+            return content;
+        }
+
+        function generateGitPatch(data) {
+            let patch = 'From: Developer <dev@yearlog.local>\n';
+            patch += 'Date: ' + new Date().toISOString() + '\n';
+            patch += 'Subject: [PATCH] Architecture review arguments\n\n';
+            
+            data.forEach(arg => {
+                patch += `+++ Section: ${arg.section}\n`;
+                patch += `+++ Timestamp: ${arg.timestamp}\n`;
+                patch += `+++ Argument:\n`;
+                patch += arg.content.split('\n').map(line => '+' + line).join('\n');
+                patch += '\n\n';
+            });
+            
+            return patch;
+        }
+
+        function embedArguments() {
+            // This would embed arguments into the main document with colored text
+            alert('Embed functionality would integrate arguments into the main content with distinguishing colors. Implementation depends on your specific workflow requirements.');
+        }
+
+        // Initialize blueprint
+        document.addEventListener('DOMContentLoaded', () => {
+            blueprint.init();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'f':
+                        e.preventDefault();
+                        document.getElementById('argument-editor').focus();
+                        break;
+                    case 'Enter':
+                        if (e.target.id === 'argument-editor') {
+                            e.preventDefault();
+                            addArgument();
+                        }
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
