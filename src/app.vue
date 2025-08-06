@@ -22,7 +22,8 @@ import FooterBar from './components/FooterBar.vue'
 
 const entries = ref([
   { id: 1, title: 'First Entry', description: 'This is just a test.' },
-  { id: 2, title: 'Second Entry', description: 'Vue is reactive!' }
+  { id: 2, title: 'Second Entry', description: 'Vue is reactive!' },
+  { id: 3, title: 'Third Entry', description: 'visit https://anandvip.github.io/yearlog-vue/dev' }
 ])
 </script>
 
